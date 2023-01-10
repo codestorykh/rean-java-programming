@@ -5,9 +5,8 @@ import java.util.HashMap;
 
 public class GenericCache {
 
-    private HashMap<String, CacheItem<?>> myCache = new HashMap<>();
+    private final HashMap<String, CacheItem<?>> cacheItemHashMap = new HashMap<>();
     private static GenericCache genericCache;
-    private final static Integer DEFAULT_EXPIRE_DURATION_MIN = 1;
 
     private GenericCache() {
     }
@@ -17,19 +16,19 @@ public class GenericCache {
         return genericCache;
     }
 
-    public <T> T getCacheItem(String key) throws CacheItemNotFound {
-        CacheItem<T> cacheItem = (CacheItem<T>) myCache.get(key);
-        if (cacheItem == null) throw new CacheItemNotFound();
-        System.out.println(cacheItem.getExpireDateTime());
+    public <T> T getCacheItem(String key) {
+        CacheItem<T> cacheItem = (CacheItem<T>) cacheItemHashMap.get(key);
+        if(cacheItem == null)
+            return null;
         if (cacheItem.isEvicted() || cacheItem.getExpireDateTime().compareTo(new Date()) < 0) {
-            myCache.remove(key);
+            cacheItemHashMap.remove(key);
             return null;
         }
         return cacheItem.getCacheContent();
     }
 
     public <T> void addCacheItem(String key, CacheFunctionalInterface<T> function) {
-        this.addCacheItem(key, function, Calendar.MINUTE, DEFAULT_EXPIRE_DURATION_MIN);
+        this.addCacheItem(key, function, Calendar.MINUTE, 1);
     }
 
     public <T> void addCacheItem(String key, CacheFunctionalInterface<T> function, Integer field, Integer amount) {
@@ -39,26 +38,21 @@ public class GenericCache {
     }
 
     public <T> void addCacheItem(String key, CacheFunctionalInterface<T> function, Date expireDateTime) {
-        CacheItem<T> cacheItem = (CacheItem<T>) myCache.get(key);
-        if (cacheItem == null) {
-            cacheItem = new CacheItem<>();
-            cacheItem.setFunction(function);
-            System.out.println("Expired date time: " + expireDateTime);
-            cacheItem.setExpireDateTime(expireDateTime);
-            cacheItem.setLastUpdateDateTime(new Date());
-            cacheItem.setCacheContent(function.execute());
-            myCache.put(key, cacheItem);
-        } else {
-            if (cacheItem.isEvicted() || cacheItem.getExpireDateTime().compareTo(new Date()) < 0) {
-                cacheItem.setExpireDateTime(expireDateTime);
-                cacheItem.setLastUpdateDateTime(new Date());
-                cacheItem.setCacheContent(function.execute());
-            }
-        }
+        CacheItem<T> cacheItem = new CacheItem<>();
+        cacheItem.setFunction(function);
+        cacheItem.setExpireDateTime(expireDateTime);
+        cacheItem.setLastUpdateDateTime(new Date());
+        cacheItem.setCacheContent(function.execute());
+        cacheItemHashMap.put(key, cacheItem);
+
+        System.out.println("Expired date time: " + expireDateTime);
+        System.out.println("Cache key: " + key + " and value: " + function.execute());
     }
 
     public void evict(String key) {
-        if (myCache.get(key) != null) myCache.get(key).setEvicted(true);
+        if (cacheItemHashMap.get(key) != null) {
+            cacheItemHashMap.remove(key);
+        }
     }
 
 }

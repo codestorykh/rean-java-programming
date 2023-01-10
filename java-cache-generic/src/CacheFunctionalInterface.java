@@ -1,4 +1,4 @@
 
 public interface CacheFunctionalInterface<T> {
-    public T execute();
+    T execute();
 }
